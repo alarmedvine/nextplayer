@@ -40,6 +40,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -102,6 +103,7 @@ import dev.anilbeesetti.nextplayer.core.ui.components.BindTopLevelBottomBarVisib
 import dev.anilbeesetti.nextplayer.core.ui.components.BindTopLevelFab
 import dev.anilbeesetti.nextplayer.core.ui.components.CancelButton
 import dev.anilbeesetti.nextplayer.core.ui.components.LocalNavigationBottomPadding
+import dev.anilbeesetti.nextplayer.core.ui.components.LocalTopLevelPageSwitcher
 import dev.anilbeesetti.nextplayer.core.ui.components.NextDialog
 import dev.anilbeesetti.nextplayer.core.ui.components.NextOutlinedTextField
 import dev.anilbeesetti.nextplayer.core.ui.components.NextTopAppBar
@@ -321,6 +323,11 @@ internal fun MediaPickerScreenContent(
                     }
                 },
             )
+            // The bottom navigation bar is gone, so the top-level pages are picked here, right
+            // below the app bar and above the folder list.
+            if (state.folderName == null && !selectionManager.isInSelectionMode) {
+                TopLevelPageChipsRow()
+            }
         },
         bottomBar = {
             SelectionActionsSheet(
@@ -1253,6 +1260,38 @@ private fun MediaPickerLoadingPreview() {
                     mediaDataState = DataState.Loading,
                     preferences = ApplicationPreferences(),
                 ),
+            )
+        }
+    }
+}
+
+/** All top-level pages, in the order they appear in the chip row. */
+private val topLevelPageChips = listOf(
+    TopLevelFabKey.MEDIA to R.string.home,
+    TopLevelFabKey.PLAYLISTS to R.string.playlists,
+    TopLevelFabKey.NETWORK to R.string.network,
+    TopLevelFabKey.MORE to R.string.more,
+)
+
+/**
+ * One chip per top-level page, shown between the app bar and the folder list. Replaces the removed
+ * bottom navigation bar: [TopLevelFabKey.MEDIA] is this screen, so it is the selected chip.
+ */
+@Composable
+private fun TopLevelPageChipsRow(modifier: Modifier = Modifier) {
+    val switchPage = LocalTopLevelPageSwitcher.current
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        topLevelPageChips.forEach { (key, labelResId) ->
+            FilterChip(
+                selected = key == TopLevelFabKey.MEDIA,
+                onClick = { if (key != TopLevelFabKey.MEDIA) switchPage(key) },
+                label = { Text(text = stringResource(id = labelResId)) },
             )
         }
     }

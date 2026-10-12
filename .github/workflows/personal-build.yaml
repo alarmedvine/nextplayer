@@ -56,11 +56,11 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          VERSION_CODE: ${{ 100000 + github.run_number }}
         run: |
+          version_code=$((100000 + GITHUB_RUN_NUMBER))
           ./gradlew assembleRelease \
-            -PciVersionCode="$VERSION_CODE" \
-            -PciVersionNameSuffix="-personal.${{ github.run_number }}"
+            -PciVersionCode="$version_code" \
+            -PciVersionNameSuffix="-personal.$GITHUB_RUN_NUMBER"
 
       - name: Rename APKs to stable file names
         run: |
@@ -81,12 +81,13 @@ jobs:
       - name: Publish rolling release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION_NAME: 0.19.0-personal.${{ github.run_number }}
         run: |
+          version_name="0.19.0-personal.$GITHUB_RUN_NUMBER"
+          version_code=$((100000 + GITHUB_RUN_NUMBER))
           gh release delete personal-latest --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
           gh release create personal-latest \
             --repo "$GITHUB_REPOSITORY" \
-            --title "Personal build $VERSION_NAME" \
+            --title "Personal build $version_name" \
             --prerelease \
-            --notes "Signed personal build of ${{ github.sha }} (versionName $VERSION_NAME, versionCode ${{ 100000 + github.run_number }})." \
+            --notes "Signed personal build of $GITHUB_SHA (versionName $version_name, versionCode $version_code)." \
             app/build/outputs/apk/release/nextplayer-*.apk

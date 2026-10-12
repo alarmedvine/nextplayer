@@ -2,7 +2,9 @@ package dev.anilbeesetti.nextplayer.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,7 +24,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.anilbeesetti.nextplayer.core.ui.R
 import dev.anilbeesetti.nextplayer.core.ui.components.ClickablePreferenceItem
+import dev.anilbeesetti.nextplayer.core.ui.components.LocalTopLevelPageSwitcher
 import dev.anilbeesetti.nextplayer.core.ui.components.NextTopAppBar
+import dev.anilbeesetti.nextplayer.core.ui.components.TopLevelFabKey
 import dev.anilbeesetti.nextplayer.core.ui.components.rememberRestorableFocusState
 import dev.anilbeesetti.nextplayer.core.ui.components.restorableFocusGroup
 import dev.anilbeesetti.nextplayer.core.ui.components.restorableFocusItem
@@ -37,14 +41,17 @@ data class SettingsOutput(
 private sealed interface SettingsAction {
     data object NavigateUp : SettingsAction
     data class OpenSetting(val setting: Setting) : SettingsAction
+    data class OpenPage(val key: String) : SettingsAction
 }
 
 @Composable
 fun SettingsScreen(output: SettingsOutput) {
+    val switchPage = LocalTopLevelPageSwitcher.current
     SettingsScreenContent { action ->
         when (action) {
             is SettingsAction.NavigateUp -> output.navigateUp()
             is SettingsAction.OpenSetting -> output.openSetting(action.setting)
+            is SettingsAction.OpenPage -> switchPage(action.key)
         }
     }
 }
@@ -55,6 +62,7 @@ private fun SettingsScreenContent(
     onAction: (SettingsAction) -> Unit,
 ) {
     val settingRows = remember { SettingRow.entries }
+    val pageRows = remember { PageRow.entries }
     val focusState = rememberRestorableFocusState()
 
     Scaffold(
@@ -86,6 +94,19 @@ private fun SettingsScreenContent(
                 .padding(vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
         ) {
+            pageRows.forEachIndexed { index, row ->
+                key(row) {
+                    ClickablePreferenceItem(
+                        modifier = Modifier.restorableFocusItem(focusState, row.name),
+                        title = stringResource(id = row.titleResId),
+                        icon = row.icon,
+                        onClick = { onAction(SettingsAction.OpenPage(row.key)) },
+                        isFirstItem = index == 0,
+                        isLastItem = index == pageRows.lastIndex,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
             settingRows.forEachIndexed { index, row ->
                 key(row) {
                     ClickablePreferenceItem(
@@ -112,6 +133,21 @@ enum class Setting {
     SUBTITLE,
     GENERAL,
     ABOUT,
+}
+
+/**
+ * The top-level pages, listed at the top of the settings screen. The app has no bottom navigation
+ * bar, so this is where the user moves between pages.
+ */
+private enum class PageRow(
+    val key: String,
+    val titleResId: Int,
+    val icon: ImageVector,
+) {
+    HOME(TopLevelFabKey.MEDIA, R.string.home, NextIcons.Home),
+    PLAYLISTS(TopLevelFabKey.PLAYLISTS, R.string.playlists, NextIcons.Playlist),
+    NETWORK(TopLevelFabKey.NETWORK, R.string.network, NextIcons.Network),
+    MORE(TopLevelFabKey.MORE, R.string.more, NextIcons.More),
 }
 
 private enum class SettingRow(

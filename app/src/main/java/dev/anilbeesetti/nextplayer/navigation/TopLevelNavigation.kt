@@ -2,9 +2,7 @@ package dev.anilbeesetti.nextplayer.navigation
 
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.BoundsTransform
 import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.animateBounds
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -18,10 +16,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
@@ -45,7 +41,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -58,20 +53,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
@@ -85,7 +72,6 @@ import dev.anilbeesetti.nextplayer.core.common.extensions.isTelevision
 import dev.anilbeesetti.nextplayer.core.ui.R
 import dev.anilbeesetti.nextplayer.core.ui.components.TopLevelFabKey
 import dev.anilbeesetti.nextplayer.core.ui.components.TopLevelFabState
-import dev.anilbeesetti.nextplayer.core.ui.components.thenIf
 import dev.anilbeesetti.nextplayer.core.ui.components.tvFocusRing
 import dev.anilbeesetti.nextplayer.core.ui.designsystem.NextIcons
 import dev.anilbeesetti.nextplayer.feature.more.navigation.MoreRoute
@@ -218,51 +204,34 @@ internal fun TopLevelNavState.navigationTransition(initialState: Scene<NavKey>, 
     )
 }
 
+/**
+ * The floating action button row pinned to the bottom of the content, aligned with the trailing
+ * edge.
+ *
+ * Home intentionally has no tab bar: pages are switched from the settings screen instead (see
+ * [dev.anilbeesetti.nextplayer.core.ui.components.LocalTopLevelPageSwitcher]).
+ */
 @Composable
 fun NextNavigationBar(
-    state: TopLevelNavState,
     fabState: TopLevelFabState?,
     contentFocusRequester: FocusRequester,
     fabFocusRequester: FocusRequester,
-    showFabOnly: Boolean = false,
 ) {
     val isTv = LocalContext.current.isTelevision
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .thenIf(condition = !showFabOnly) {
-                background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            MaterialTheme.colorScheme.background,
-                        ),
-                    ),
-                )
-            }
             .navigationBarsPadding()
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
             .padding(bottom = 12.dp)
-            .padding(horizontal = 16.dp)
-            .thenIf(condition = !showFabOnly) {
-                pointerInput(Unit) {}
-            },
+            .padding(horizontal = 16.dp),
         contentAlignment = Alignment.BottomCenter,
     ) {
         Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.End,
         ) {
-            if (!showFabOnly) {
-                NavigationView(
-                    destinations = state.destinations,
-                    isSelected = { it.route == state.topLevelRoute },
-                    onDestinationClick = { state.switchTo(it.route) },
-                )
-            } else {
-                Spacer(Modifier.weight(1f))
-            }
-
             fabState?.let { fab ->
                 FloatingActionButton(
                     onClick = fab.onClick,
@@ -298,96 +267,6 @@ fun NextNavigationBar(
         }
     }
 }
-
-@Composable
-fun NavigationView(
-    modifier: Modifier = Modifier,
-    destinations: List<TopLevelDestination>,
-    isSelected: (TopLevelDestination) -> Boolean,
-    onDestinationClick: (TopLevelDestination) -> Unit,
-) {
-    val animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Rect>()
-    val boundsTransform = remember {
-        BoundsTransform { _, _ -> animationSpec }
-    }
-
-    Box(
-        modifier = modifier
-            .graphicsLayer(
-                shadowElevation = with(LocalDensity.current) { 6.dp.toPx() },
-                shape = CircleShape,
-            )
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .padding(4.dp),
-    ) {
-        LookaheadScope {
-            val pill = remember {
-                movableContentOf<BoxScope> { scope ->
-                    with(scope) {
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .animateBounds(
-                                    lookaheadScope = this@LookaheadScope,
-                                    boundsTransform = boundsTransform,
-                                )
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondaryContainer),
-                        )
-                    }
-                }
-            }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                destinations.forEach { destination ->
-                    val isSelected = isSelected(destination)
-                    Box(
-                        modifier = Modifier.zIndex(if (isSelected) 0f else 1f),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (isSelected) {
-                            pill(this)
-                        }
-                        Column(
-                            Modifier
-                                .tvFocusRing(shape = RoundedCornerShape(99.dp))
-                                .clip(CircleShape)
-                                .selectable(
-                                    selected = isSelected,
-                                    onClick = { onDestinationClick(destination) },
-                                    role = Role.Tab,
-                                    indication = null,
-                                    interactionSource = null,
-                                )
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(2.dp),
-                        ) {
-                            CompositionLocalProvider(
-                                LocalContentColor provides if (isSelected) {
-                                    MaterialTheme.colorScheme.onSecondaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                            ) {
-                                Icon(
-                                    imageVector = destination.icon,
-                                    contentDescription = stringResource(destination.labelRes),
-                                    modifier = Modifier.size(24.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 @Composable
 fun NextNavigationRail(state: TopLevelNavState, modifier: Modifier = Modifier) {
     NavigationRail(

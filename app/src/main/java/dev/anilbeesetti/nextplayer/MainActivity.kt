@@ -65,6 +65,7 @@ import dev.anilbeesetti.nextplayer.core.model.ThemeConfig
 import dev.anilbeesetti.nextplayer.core.ui.components.LocalNavigationBottomPadding
 import dev.anilbeesetti.nextplayer.core.ui.components.LocalTopLevelBottomBarVisibleSetter
 import dev.anilbeesetti.nextplayer.core.ui.components.LocalTopLevelFabSetter
+import dev.anilbeesetti.nextplayer.core.ui.components.LocalTopLevelPageSwitcher
 import dev.anilbeesetti.nextplayer.core.ui.components.TopLevelFabState
 import dev.anilbeesetti.nextplayer.core.ui.components.thenIf
 import dev.anilbeesetti.nextplayer.core.ui.theme.NextPlayerTheme
@@ -174,6 +175,17 @@ class MainActivity : FragmentActivity() {
                                     topLevelFabStates[key] = state
                                 }
                             },
+                            LocalTopLevelPageSwitcher provides { key ->
+                                val destination = TopLevelDestination.entries.firstOrNull { it.fabKey == key }
+                                if (destination != null) {
+                                    // Pop the screens pushed on the current page (settings, folder…)
+                                    // so switching pages never lands the user back on one of them.
+                                    while (navState.currentStack.size > 1) {
+                                        navState.currentStack.removeLastOrNull()
+                                    }
+                                    navState.switchTo(destination.route)
+                                }
+                            },
                         ) {
                             NavDisplay(
                                 entries = navState.rememberEntries(provider, navigationInsetsDecorator),
@@ -222,11 +234,9 @@ fun NavigationLayout(
                     exit = fadeOut() + slideOutVertically { it },
                 ) {
                     NextNavigationBar(
-                        state = state,
                         fabState = displayedFabState,
                         contentFocusRequester = contentFocusRequester,
                         fabFocusRequester = fabFocusRequester,
-                        showFabOnly = showNavRail,
                     )
                 }
             },

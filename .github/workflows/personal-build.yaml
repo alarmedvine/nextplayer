@@ -66,17 +66,14 @@ jobs:
         run: |
           cd app/build/outputs/apk/release
           mv app-arm64-v8a-release.apk nextplayer-arm64-v8a.apk
-          mv app-armeabi-v7a-release.apk nextplayer-armeabi-v7a.apk
-          mv app-universal-release.apk nextplayer-universal.apk
-          mv app-x86-release.apk nextplayer-x86.apk
-          mv app-x86_64-release.apk nextplayer-x86_64.apk
+          rm -f app-armeabi-v7a-release.apk app-universal-release.apk app-x86-release.apk app-x86_64-release.apk
           ls -l
 
       - name: Upload APKs as workflow artifacts
         uses: actions/upload-artifact@v7
         with:
           name: nextplayer-personal-${{ github.run_number }}
-          path: app/build/outputs/apk/release/nextplayer-*.apk
+          path: app/build/outputs/apk/release/nextplayer-arm64-v8a.apk
 
       - name: Publish rolling release
         env:
@@ -91,4 +88,4 @@ jobs:
             --title "Personal build $version_name" \
             --prerelease \
             --notes "Signed personal build of $GITHUB_SHA (versionName $version_name, versionCode $version_code)." \
-            app/build/outputs/apk/release/nextplayer-*.apk
+            app/build/outputs/apk/release/nextplayer-arm64-v8a.apk

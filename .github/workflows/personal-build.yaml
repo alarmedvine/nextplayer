@@ -87,6 +87,7 @@ jobs:
           gh release delete personal-latest --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
           gh release create personal-latest \
             --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
             --title "Personal build $version_name" \
             --prerelease \
             --notes "Signed personal build of $GITHUB_SHA (versionName $version_name, versionCode $version_code)." \

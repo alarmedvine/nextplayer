@@ -40,6 +40,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -102,6 +103,7 @@ import dev.anilbeesetti.nextplayer.core.ui.components.BindTopLevelBottomBarVisib
 import dev.anilbeesetti.nextplayer.core.ui.components.BindTopLevelFab
 import dev.anilbeesetti.nextplayer.core.ui.components.CancelButton
 import dev.anilbeesetti.nextplayer.core.ui.components.LocalNavigationBottomPadding
+import dev.anilbeesetti.nextplayer.core.ui.components.LocalTopLevelPageSwitcher
 import dev.anilbeesetti.nextplayer.core.ui.components.NextDialog
 import dev.anilbeesetti.nextplayer.core.ui.components.NextOutlinedTextField
 import dev.anilbeesetti.nextplayer.core.ui.components.NextTopAppBar
@@ -218,109 +220,116 @@ internal fun MediaPickerScreenContent(
 
     Scaffold(
         topBar = {
-            NextTopAppBar(
-                title = {
-                    val titleText = (state.folderName ?: stringResource(R.string.app_name))
-                        .takeIf { !selectionManager.isInSelectionMode } ?: ""
-                    Text(
-                        text = titleText,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        fontWeight = FontWeight.Bold.takeIf { state.folderName == null },
-                    )
-                },
-                navigationIcon = {
-                    if (selectionManager.isInSelectionMode) {
-                        Row(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondaryContainer)
-                                .clickable { selectionManager.exitSelectionMode() }
-                                .padding(8.dp)
-                                .padding(end = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Icon(
-                                imageVector = NextIcons.Close,
-                                contentDescription = stringResource(id = R.string.navigate_up),
-                            )
-                            Text(
-                                text = stringResource(R.string.m_n_selected, selectedItemsSize, totalItemsSize),
-                                style = MaterialTheme.typography.labelLarge,
-                            )
+            Column {
+                NextTopAppBar(
+                    title = {
+                        val titleText = (state.folderName ?: stringResource(R.string.app_name))
+                            .takeIf { !selectionManager.isInSelectionMode } ?: ""
+                        Text(
+                            text = titleText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            fontWeight = FontWeight.Bold.takeIf { state.folderName == null },
+                        )
+                    },
+                    navigationIcon = {
+                        if (selectionManager.isInSelectionMode) {
+                            Row(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                                    .clickable { selectionManager.exitSelectionMode() }
+                                    .padding(8.dp)
+                                    .padding(end = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Icon(
+                                    imageVector = NextIcons.Close,
+                                    contentDescription = stringResource(id = R.string.navigate_up),
+                                )
+                                Text(
+                                    text = stringResource(R.string.m_n_selected, selectedItemsSize, totalItemsSize),
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                            }
+                        } else if (state.folderName != null) {
+                            FilledTonalIconButton(
+                                onClick = { onAction(MediaPickerAction.OnNavigateUpClick) },
+                                modifier = topBarDownModifier.tvFocusRing(isTv),
+                            ) {
+                                Icon(
+                                    imageVector = NextIcons.ArrowBack,
+                                    contentDescription = stringResource(id = R.string.navigate_up),
+                                )
+                            }
                         }
-                    } else if (state.folderName != null) {
-                        FilledTonalIconButton(
-                            onClick = { onAction(MediaPickerAction.OnNavigateUpClick) },
-                            modifier = topBarDownModifier.tvFocusRing(isTv),
-                        ) {
-                            Icon(
-                                imageVector = NextIcons.ArrowBack,
-                                contentDescription = stringResource(id = R.string.navigate_up),
-                            )
-                        }
-                    }
-                },
-                actions = {
-                    if (selectionManager.isInSelectionMode) {
-                        FilledTonalIconButton(
-                            onClick = {
-                                if (selectedItemsSize != totalItemsSize) {
-                                    (state.mediaDataState as? DataState.Success)?.value?.let { folder ->
-                                        folder.folders.forEach { selectionManager.selectFolder(it) }
-                                        folder.videos.forEach { selectionManager.selectVideo(it) }
+                    },
+                    actions = {
+                        if (selectionManager.isInSelectionMode) {
+                            FilledTonalIconButton(
+                                onClick = {
+                                    if (selectedItemsSize != totalItemsSize) {
+                                        (state.mediaDataState as? DataState.Success)?.value?.let { folder ->
+                                            folder.folders.forEach { selectionManager.selectFolder(it) }
+                                            folder.videos.forEach { selectionManager.selectVideo(it) }
+                                        }
+                                    } else {
+                                        selectionManager.clearSelection()
                                     }
-                                } else {
-                                    selectionManager.clearSelection()
-                                }
-                            },
-                            modifier = topBarDownModifier.tvFocusRing(isTv),
-                        ) {
-                            Icon(
-                                imageVector = if (selectedItemsSize != totalItemsSize) {
-                                    NextIcons.SelectAll
-                                } else {
-                                    NextIcons.DeselectAll
                                 },
-                                contentDescription = if (selectedItemsSize != totalItemsSize) {
-                                    stringResource(R.string.select_all)
-                                } else {
-                                    stringResource(R.string.deselect_all)
-                                },
-                            )
+                                modifier = topBarDownModifier.tvFocusRing(isTv),
+                            ) {
+                                Icon(
+                                    imageVector = if (selectedItemsSize != totalItemsSize) {
+                                        NextIcons.SelectAll
+                                    } else {
+                                        NextIcons.DeselectAll
+                                    },
+                                    contentDescription = if (selectedItemsSize != totalItemsSize) {
+                                        stringResource(R.string.select_all)
+                                    } else {
+                                        stringResource(R.string.deselect_all)
+                                    },
+                                )
+                            }
+                        } else {
+                            IconButton(
+                                onClick = { onAction(MediaPickerAction.OnSearchClick) },
+                                modifier = topBarDownModifier.tvFocusRing(isTv),
+                            ) {
+                                Icon(
+                                    imageVector = NextIcons.Search,
+                                    contentDescription = stringResource(id = R.string.search),
+                                )
+                            }
+                            IconButton(
+                                onClick = { showQuickSettingsDialog = true },
+                                modifier = topBarDownModifier.tvFocusRing(isTv),
+                            ) {
+                                Icon(
+                                    imageVector = NextIcons.DashBoard,
+                                    contentDescription = stringResource(id = R.string.menu),
+                                )
+                            }
+                            IconButton(
+                                onClick = { onAction(MediaPickerAction.OnSettingsClick) },
+                                modifier = topBarDownModifier.tvFocusRing(isTv),
+                            ) {
+                                Icon(
+                                    imageVector = NextIcons.Settings,
+                                    contentDescription = stringResource(id = R.string.settings),
+                                )
+                            }
                         }
-                    } else {
-                        IconButton(
-                            onClick = { onAction(MediaPickerAction.OnSearchClick) },
-                            modifier = topBarDownModifier.tvFocusRing(isTv),
-                        ) {
-                            Icon(
-                                imageVector = NextIcons.Search,
-                                contentDescription = stringResource(id = R.string.search),
-                            )
-                        }
-                        IconButton(
-                            onClick = { showQuickSettingsDialog = true },
-                            modifier = topBarDownModifier.tvFocusRing(isTv),
-                        ) {
-                            Icon(
-                                imageVector = NextIcons.DashBoard,
-                                contentDescription = stringResource(id = R.string.menu),
-                            )
-                        }
-                        IconButton(
-                            onClick = { onAction(MediaPickerAction.OnSettingsClick) },
-                            modifier = topBarDownModifier.tvFocusRing(isTv),
-                        ) {
-                            Icon(
-                                imageVector = NextIcons.Settings,
-                                contentDescription = stringResource(id = R.string.settings),
-                            )
-                        }
-                    }
-                },
-            )
+                    },
+                )
+                // The bottom navigation bar is gone, so the top-level pages are picked here, right
+                // below the app bar and above the folder list.
+                if (state.folderName == null && !selectionManager.isInSelectionMode) {
+                    TopLevelPageChipsRow()
+                }
+            }
         },
         bottomBar = {
             SelectionActionsSheet(
@@ -1253,6 +1262,38 @@ private fun MediaPickerLoadingPreview() {
                     mediaDataState = DataState.Loading,
                     preferences = ApplicationPreferences(),
                 ),
+            )
+        }
+    }
+}
+
+/** All top-level pages, in the order they appear in the chip row. */
+private val topLevelPageChips = listOf(
+    TopLevelFabKey.MEDIA to R.string.home,
+    TopLevelFabKey.PLAYLISTS to R.string.playlists,
+    TopLevelFabKey.NETWORK to R.string.network,
+    TopLevelFabKey.MORE to R.string.more,
+)
+
+/**
+ * One chip per top-level page, shown between the app bar and the folder list. Replaces the removed
+ * bottom navigation bar: [TopLevelFabKey.MEDIA] is this screen, so it is the selected chip.
+ */
+@Composable
+private fun TopLevelPageChipsRow(modifier: Modifier = Modifier) {
+    val switchPage = LocalTopLevelPageSwitcher.current
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        topLevelPageChips.forEach { (key, labelResId) ->
+            FilterChip(
+                selected = key == TopLevelFabKey.MEDIA,
+                onClick = { if (key != TopLevelFabKey.MEDIA) switchPage(key) },
+                label = { Text(text = stringResource(id = labelResId)) },
             )
         }
     }

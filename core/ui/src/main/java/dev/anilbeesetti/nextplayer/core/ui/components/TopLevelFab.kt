@@ -23,20 +23,14 @@ data class TopLevelFabState(
 val LocalTopLevelFabSetter = compositionLocalOf<(String, TopLevelFabState?) -> Unit> { { _, _ -> } }
 val LocalTopLevelBottomBarVisibleSetter = compositionLocalOf<(Boolean) -> Unit> { {} }
 
-/**
- * Switches the visible top-level page. The [String] argument is one of the [TopLevelFabKey]
- * constants (`MEDIA`, `PLAYLISTS`, `NETWORK`, `MORE`); unknown keys are ignored.
- *
- * Used by screens that are *not* top-level destinations themselves (e.g. the settings screen) to
- * move the user to another top-level page without a bottom navigation bar.
- */
-val LocalTopLevelPageSwitcher = compositionLocalOf<(String) -> Unit> { {} }
-
 @Composable
 fun BindTopLevelBottomBarVisible(visible: Boolean) {
     val setter = LocalTopLevelBottomBarVisibleSetter.current
 
-    DisposableEffect(visible, setter) {
+    DisposableEffect(
+        key1 = visible,
+        key2 = setter,
+    ) {
         setter(visible)
         onDispose { setter(true) }
     }
@@ -50,9 +44,14 @@ fun BindTopLevelFab(
     onClick: () -> Unit,
 ) {
     val setter = LocalTopLevelFabSetter.current
-    val currentOnClick = rememberUpdatedState(onClick)
+    val currentOnClick = rememberUpdatedState(newValue = onClick)
 
-    DisposableEffect(key, icon, upFocusRequester, setter) {
+    DisposableEffect(
+        key,
+        icon,
+        upFocusRequester,
+        setter,
+    ) {
         setter(
             key,
             TopLevelFabState(
@@ -61,6 +60,11 @@ fun BindTopLevelFab(
                 upFocusRequester = upFocusRequester,
             ),
         )
-        onDispose { setter(key, null) }
+        onDispose {
+            setter(
+                key,
+                null,
+            )
+        }
     }
 }

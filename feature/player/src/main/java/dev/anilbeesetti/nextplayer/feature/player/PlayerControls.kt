@@ -18,6 +18,7 @@ import androidx.media3.ui.compose.state.ProgressStateWithTickInterval
 import dev.anilbeesetti.nextplayer.core.model.ControlButtonsPosition
 import dev.anilbeesetti.nextplayer.core.model.PlayerPreferences
 import dev.anilbeesetti.nextplayer.feature.player.extensions.nameRes
+import dev.anilbeesetti.nextplayer.feature.player.model.DecoderMode
 import dev.anilbeesetti.nextplayer.feature.player.state.ChaptersState
 import dev.anilbeesetti.nextplayer.feature.player.state.ControlsVisibilityState
 import dev.anilbeesetti.nextplayer.feature.player.state.SeekGestureState
@@ -29,7 +30,6 @@ import dev.anilbeesetti.nextplayer.feature.player.ui.OverlayView
 import dev.anilbeesetti.nextplayer.feature.player.ui.controls.ControlsBottomView
 import dev.anilbeesetti.nextplayer.feature.player.ui.controls.ControlsMiddleView
 import dev.anilbeesetti.nextplayer.feature.player.ui.controls.ControlsTopView
-import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -72,9 +72,11 @@ fun PlayerControls(
                     onBackClick = onBackClick,
                 )
             }
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(weight = 1f))
             AnimatedVisibility(
-                visible = controlsVisibilityState.controlsVisible && !controlsVisibilityState.controlsLocked,
+                visible =
+                    controlsVisibilityState.controlsVisible &&
+                        !controlsVisibilityState.controlsLocked,
                 enter = fadeIn(),
                 exit = fadeOut(),
             ) {
@@ -103,15 +105,28 @@ fun PlayerControls(
                         controlsVisibilityState.showControls()
                         videoZoomAndContentScaleState.switchToNextVideoContentScale()
                     },
-                    onVideoContentScaleLongClick = { onShowOverlay(OverlayView.VIDEO_CONTENT_SCALE) },
+                    onVideoContentScaleLongClick = {
+                        onShowOverlay(OverlayView.VIDEO_CONTENT_SCALE)
+                    },
                     onPictureInPictureClick = onPictureInPictureClick,
                 )
             }
         }
         when {
-            seekGestureState.seekAmount != null -> InfoView(info = "${seekGestureState.seekAmountFormatted}\n[${seekGestureState.seekToPositionFormated}]")
-            videoZoomAndContentScaleState.isZooming -> InfoView(info = "${(videoZoomAndContentScaleState.zoom * 100).toInt()}%")
-            videoZoomAndContentScaleState.showContentScaleIndicator -> InfoView(info = stringResource(videoZoomAndContentScaleState.videoContentScale.nameRes()))
+            seekGestureState.seekAmount != null -> InfoView(
+                info =
+                    "${seekGestureState.seekAmountFormatted}\n" +
+                        "[${seekGestureState.seekToPositionFormated}]",
+            )
+
+            videoZoomAndContentScaleState.isZooming -> InfoView(
+                info = "${(videoZoomAndContentScaleState.zoom * 100).toInt()}%",
+            )
+
+            videoZoomAndContentScaleState.showContentScaleIndicator -> InfoView(
+                info = stringResource(videoZoomAndContentScaleState.videoContentScale.nameRes()),
+            )
+
             controlsVisibilityState.controlsVisible -> ControlsMiddleView(
                 player = player,
                 modifier = middleControlsModifier,

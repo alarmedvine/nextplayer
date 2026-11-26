@@ -45,7 +45,9 @@ import kotlin.time.Duration.Companion.milliseconds
 internal fun InfoView(
     modifier: Modifier = Modifier,
     info: String,
-    textStyle: TextStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+    textStyle: TextStyle = MaterialTheme.typography.headlineMedium.copy(
+        fontWeight = FontWeight.Bold,
+    ),
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -66,11 +68,7 @@ internal fun InfoView(
  * hidden, along with the resulting position. Fades out shortly after the last seek.
  */
 @Composable
-internal fun BoxScope.DpadSeekIndicator(
-    visible: Boolean,
-    offsetMs: Long,
-    positionMs: Long,
-) {
+internal fun BoxScope.DpadSeekIndicator(visible: Boolean, offsetMs: Long, positionMs: Long) {
     AnimatedVisibility(
         modifier = Modifier.align(Alignment.Center),
         visible = visible,
@@ -82,7 +80,10 @@ internal fun BoxScope.DpadSeekIndicator(
             color = Color.Black.copy(alpha = 0.6f),
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                modifier = Modifier.padding(
+                    horizontal = 20.dp,
+                    vertical = 12.dp,
+                ),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -92,11 +93,13 @@ internal fun BoxScope.DpadSeekIndicator(
                     tint = Color.White,
                     modifier = Modifier
                         .size(28.dp)
-                        .rotate(if (offsetMs < 0) 180f else 0f),
+                        .rotate(degrees = if (offsetMs < 0) 180f else 0f),
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "${if (offsetMs >= 0) "+" else "-"}${abs(offsetMs).milliseconds.inWholeSeconds}s",
+                        text = "${if (offsetMs >= 0) "+" else "-"}${abs(
+                            n = offsetMs,
+                        ).milliseconds.inWholeSeconds}s",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
@@ -132,7 +135,10 @@ internal fun BoxScope.PlayerGestureIndicators(tapGestureState: TapGestureState) 
                 ),
             ) {
                 Text(
-                    text = stringResource(coreUiR.string.fast_playback_speed, tapGestureState.longPressSpeed),
+                    text = stringResource(
+                        coreUiR.string.fast_playback_speed,
+                        tapGestureState.longPressSpeed,
+                    ),
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
@@ -146,13 +152,19 @@ internal fun BoxScope.PlayerVerticalGestureIndicators(
     volumePercentage: Int,
     maxVolumePercentage: Int,
     brightnessPercentage: Int,
+    useMaterialYouControls: Boolean,
 ) {
     val systemBarsPadding = WindowInsets.systemBars.asPaddingValues()
     Box(
         modifier = Modifier
             .fillMaxSize()
             .displayCutoutPadding()
-            .padding(systemBarsPadding.copy(top = 0.dp, bottom = 0.dp))
+            .padding(
+                systemBarsPadding.copy(
+                    top = 0.dp,
+                    bottom = 0.dp,
+                ),
+            )
             .padding(24.dp),
     ) {
         AnimatedVisibility(
@@ -162,6 +174,7 @@ internal fun BoxScope.PlayerVerticalGestureIndicators(
             exit = fadeOut(),
         ) {
             VerticalProgressView(
+                useMaterialYouControls = useMaterialYouControls,
                 value = volumePercentage,
                 maxValue = maxVolumePercentage,
                 icon = painterResource(coreUiR.drawable.ic_volume),
@@ -175,6 +188,7 @@ internal fun BoxScope.PlayerVerticalGestureIndicators(
             exit = fadeOut(),
         ) {
             VerticalProgressView(
+                useMaterialYouControls = useMaterialYouControls,
                 value = brightnessPercentage,
                 icon = painterResource(coreUiR.drawable.ic_brightness),
             )

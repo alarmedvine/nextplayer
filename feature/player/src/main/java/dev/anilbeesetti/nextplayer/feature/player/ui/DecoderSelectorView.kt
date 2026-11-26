@@ -29,11 +29,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import dev.anilbeesetti.nextplayer.core.ui.R
+import dev.anilbeesetti.nextplayer.feature.player.model.DecoderMode
 import dev.anilbeesetti.nextplayer.feature.player.model.DecoderTrackType
 import dev.anilbeesetti.nextplayer.feature.player.model.descriptionRes
 import dev.anilbeesetti.nextplayer.feature.player.model.labelRes
 import dev.anilbeesetti.nextplayer.feature.player.model.selectableDecoderModes
-import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 
 @Composable
 fun BoxScope.DecoderSelectorView(
@@ -53,7 +53,7 @@ fun BoxScope.DecoderSelectorView(
     ) {
         Column(
             modifier = Modifier
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(state = rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
@@ -67,6 +67,7 @@ fun BoxScope.DecoderSelectorView(
                     DecoderTrackType.VIDEO -> videoMode
                     DecoderTrackType.AUDIO -> audioMode
                 },
+                trackType = selectedTrackType,
                 onModeSelected = when (selectedTrackType) {
                     DecoderTrackType.VIDEO -> onVideoModeSelected
                     DecoderTrackType.AUDIO -> onAudioModeSelected
@@ -87,11 +88,14 @@ private fun DecoderTrackTypeSelector(
             SegmentedButton(
                 selected = selectedTrackType == trackType,
                 onClick = { onTrackTypeSelected(trackType) },
-                shape = SegmentedButtonDefaults.itemShape(index, trackTypes.size),
+                shape = SegmentedButtonDefaults.itemShape(
+                    index = index,
+                    trackTypes.size,
+                ),
             ) {
                 Text(
                     text = stringResource(
-                        when (trackType) {
+                        id = when (trackType) {
                             DecoderTrackType.VIDEO -> R.string.video
                             DecoderTrackType.AUDIO -> R.string.audio
                         },
@@ -105,10 +109,14 @@ private fun DecoderTrackTypeSelector(
 @Composable
 private fun DecoderModeGroup(
     selectedMode: DecoderMode?,
+    trackType: DecoderTrackType,
     onModeSelected: (DecoderMode) -> Unit,
 ) {
     Column(modifier = Modifier.selectableGroup()) {
-        selectableDecoderModes.forEach { mode ->
+        selectableDecoderModes.filter {
+            trackType == DecoderTrackType.VIDEO ||
+                it != DecoderMode.HW_PLUS
+        }.forEach { mode ->
             DecoderModeRow(
                 mode = mode,
                 selected = mode == selectedMode,
@@ -119,17 +127,20 @@ private fun DecoderModeGroup(
 }
 
 @Composable
-private fun DecoderModeRow(
-    mode: DecoderMode,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
+private fun DecoderModeRow(mode: DecoderMode, selected: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(4.dp))
-            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
-            .padding(horizontal = 4.dp, vertical = 8.dp),
+            .clip(shape = RoundedCornerShape(4.dp))
+            .selectable(
+                selected = selected,
+                onClick = onClick,
+                role = Role.RadioButton,
+            )
+            .padding(
+                horizontal = 4.dp,
+                vertical = 8.dp,
+            ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {

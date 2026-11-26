@@ -1,12 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-// CI builds (see .github/workflows/personal-build.yaml) pass these so that every published APK
-// carries a strictly increasing version code — required for in-place updates — and is signed with
-// the private keystore supplied through the environment.
-val ciVersionCode: Int? = (findProperty("ciVersionCode") as String?)?.toIntOrNull()
-val ciVersionNameSuffix: String = (findProperty("ciVersionNameSuffix") as String?) ?: ""
-val ciKeystoreFile: String? = System.getenv("KEYSTORE_FILE")
-
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
@@ -22,9 +15,10 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         applicationId = "dev.anilbeesetti.nextplayer"
-        versionCode = ciVersionCode ?: 75
-        versionName = "0.19.0" + ciVersionNameSuffix
+        versionCode = 78
+        versionName = "0.21.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
     }
 
     buildFeatures {
@@ -32,38 +26,20 @@ android {
         buildConfig = true
     }
 
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
+        unitTests.isIncludeAndroidResources = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.toVersion(libs.versions.android.jvm.get().toInt())
         targetCompatibility = JavaVersion.toVersion(libs.versions.android.jvm.get().toInt())
-    }
-
-    signingConfigs {
-        getByName("debug") {
-            storeFile = file("${project.rootDir}/app/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
-
-        // The private release key lives in the repository secrets, never in the repo, so that
-        // builds downloaded from GitHub Actions can always be installed over each other.
-        if (ciKeystoreFile != null) {
-            create("personal") {
-                storeFile = file(ciKeystoreFile)
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
-            }
-        }
     }
 
     buildTypes {
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
-            if (ciKeystoreFile != null) {
-                signingConfig = signingConfigs.getByName("personal")
-            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -83,14 +59,30 @@ android {
         }
     }
 
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("${project.rootDir}/app/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     splits {
         abi {
             //noinspection WrongGradleMethod
-            val isBuildingBundle = gradle.startParameter.taskNames.any { it.lowercase().contains("bundle") }
+            val isBuildingBundle = gradle.startParameter.taskNames.any {
+                it.lowercase().contains("bundle")
+            }
 
             isEnable = !isBuildingBundle
             reset()
-            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            include(
+                "armeabi-v7a",
+                "arm64-v8a",
+                "x86",
+                "x86_64",
+            )
             isUniversalApk = true
         }
     }
@@ -98,6 +90,8 @@ android {
     packaging {
         resources {
             excludes.add("/META-INF/{AL2.0,LGPL2.1}")
+            // Picnic signature data from Bouncy Castle; SSH never negotiates Picnic.
+            excludes.add("/org/bouncycastle/pqc/legacy/picnic/**")
         }
     }
 
@@ -165,12 +159,36 @@ dependencies {
     androidTestImplementation(project(":core:domain"))
     androidTestImplementation(libs.androidx.datastore.core)
     androidTestImplementation(libs.androidx.media3.session)
+    androidTestImplementation(libs.androidx.media3.ui)
+    androidTestImplementation(libs.androidx.media3.datasource)
+    androidTestImplementation(libs.androidx.media3.exoplayer)
     androidTestImplementation(libs.github.anilbeesetti.nextlib.media3ext)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.test.ext)
     androidTestImplementation(libs.androidx.test.rules)
     androidTestImplementation(libs.androidx.test.espresso.core)
+    androidTestImplementation(libs.okhttp.mockwebserver)
+    androidTestUtil(libs.androidx.test.orchestrator)
     androidTestImplementation(libs.androidx.compose.ui.test)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.testManifest)
+}
+
+// Personal build overlay: leave upstream version numbers and signing configuration untouched.
+android {
+    defaultConfig {
+        providers.gradleProperty("ciVersionCode").orNull?.let { versionCode = it.toInt() }
+        providers.gradleProperty("ciVersionNameSuffix").orNull?.let { versionName = "$versionName$it" }
+    }
+    providers.environmentVariable("KEYSTORE_FILE").orNull?.let { keystorePath ->
+        val personalSigning = signingConfigs.create("personal") {
+            storeFile = file(keystorePath)
+            storePassword = providers.environmentVariable("KEYSTORE_PASSWORD").get()
+            keyAlias = providers.environmentVariable("KEY_ALIAS").get()
+            keyPassword = providers.environmentVariable("KEY_PASSWORD").get()
+        }
+        buildTypes.getByName("release") {
+            signingConfig = personalSigning
+        }
+    }
 }

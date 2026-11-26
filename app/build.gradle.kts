@@ -178,7 +178,9 @@ dependencies {
 android {
     defaultConfig {
         providers.gradleProperty("ciVersionCode").orNull?.let { versionCode = it.toInt() }
-        providers.gradleProperty("ciVersionNameSuffix").orNull?.let { versionName = "$versionName$it" }
+        providers.gradleProperty("ciVersionNameSuffix").orNull?.let {
+            versionName = "$versionName$it"
+        }
     }
     providers.environmentVariable("KEYSTORE_FILE").orNull?.let { keystorePath ->
         val personalSigning = signingConfigs.create("personal") {
